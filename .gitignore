@@ -8,6 +8,8 @@
 *.safetensors
 
 __pycache__/
+.ruff_cache/
+.mypy_cache/
 *.py[cod]
 *$py.class
 .pytest_cache/
@@ -15,9 +17,12 @@ venv/
 .venv/
 env/
 .env
+uv.lock
 
 .huggingface/
 .cache/
+mDeBERTa/
+Qwen/
 
 HELP.md
 target/
