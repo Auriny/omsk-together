@@ -1,0 +1,33 @@
+package ru.auriny.core.controller;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import ru.auriny.core.service.ExcelService;
+
+import java.io.IOException;
+
+@RestController
+@RequestMapping("/api")
+@RequiredArgsConstructor
+public class IncidentController {
+    private final ExcelService excelService;
+
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> analyzeIncidents(@RequestParam("file") MultipartFile file) throws IOException {
+        byte[] excelReport = excelService.processAndGenerateReport(file);
+
+        ByteArrayResource resource = new ByteArrayResource(excelReport);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "summary_report.xlsx");
+
+        return ResponseEntity.ok().headers(headers).body(resource);
+    }
+}
