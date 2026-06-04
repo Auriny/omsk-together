@@ -45,14 +45,22 @@ public class ExcelService {
                     continue;
                 }
 
-                //todo: указать реальные индексы столбцов, когда дадут датасет
-                String district = getCellAsString(row, 0);
-                String text = getCellAsString(row, 1);
+                String topicGroup = getCellAsString(row, 19); // T: Группа тем
+//                String topicSub = getCellAsString(row, 20); // U: Тема
+                String district = getCellAsString(row, 22); // W: Муниципалитет
+                String text = getCellAsString(row, 34); // AI: Текст инцидента
 
                 if (text == null || text.isBlank()) continue;
 
-                batch.add(new IncidentRow(district, text));
+//                String combinedTopic = "";
+//                if (topicGroup != null && !topicGroup.isBlank()) {
+//                    combinedTopic = topicGroup;
+//                    if (topicSub != null && !topicSub.isBlank()) {
+//                        combinedTopic += " - " + topicSub;
+//                    }
+//                } else if (topicSub != null) combinedTopic = topicSub;
 
+                batch.add(new IncidentRow(district, topicGroup, text));
                 if (batch.size() >= BATCH_SIZE) {
                     aiQueueService.pushTask(RedisKeys.QUEUE_TASKS, new AnalyzeTaskBatch(false, new ArrayList<>(batch)));
                     batch.clear();
@@ -85,7 +93,7 @@ public class ExcelService {
             headerStyle.setFont(headerFont);
 
             Row headerRow = reportSheet.createRow(0);
-            String[] columns = {"Ранг", "Муниципалитет", "Кол-во проблем", "Ключевые темы", "Саммари AI"};
+            String[] columns = {"Ранг", "Муниципалитет", "Кол-во проблем", "Ключевые темы", "Отчёт AI"};
             for (int i = 0; i < columns.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(columns[i]);
