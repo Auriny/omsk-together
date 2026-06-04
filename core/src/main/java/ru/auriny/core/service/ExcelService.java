@@ -46,13 +46,12 @@ public class ExcelService {
                 }
 
                 //todo: указать реальные индексы столбцов, когда дадут датасет
-                String id = getCellAsString(row, 0);
-                String district = getCellAsString(row, 1);
-                String text = getCellAsString(row, 2);
+                String district = getCellAsString(row, 0);
+                String text = getCellAsString(row, 1);
 
                 if (text == null || text.isBlank()) continue;
 
-                batch.add(new IncidentRow(id, district, text));
+                batch.add(new IncidentRow(district, text));
 
                 if (batch.size() >= BATCH_SIZE) {
                     aiQueueService.pushTask(RedisKeys.QUEUE_TASKS, new AnalyzeTaskBatch(false, new ArrayList<>(batch)));
