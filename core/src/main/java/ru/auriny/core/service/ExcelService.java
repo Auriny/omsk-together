@@ -46,19 +46,10 @@ public class ExcelService {
                 }
 
                 String topicGroup = getCellAsString(row, 19); // T: Группа тем
-//                String topicSub = getCellAsString(row, 20); // U: Тема
                 String district = getCellAsString(row, 22); // W: Муниципалитет
                 String text = getCellAsString(row, 34); // AI: Текст инцидента
 
                 if (text == null || text.isBlank()) continue;
-
-//                String combinedTopic = "";
-//                if (topicGroup != null && !topicGroup.isBlank()) {
-//                    combinedTopic = topicGroup;
-//                    if (topicSub != null && !topicSub.isBlank()) {
-//                        combinedTopic += " - " + topicSub;
-//                    }
-//                } else if (topicSub != null) combinedTopic = topicSub;
 
                 batch.add(new IncidentRow(district, topicGroup, text));
                 if (batch.size() >= BATCH_SIZE) {
@@ -82,43 +73,68 @@ public class ExcelService {
         }
 
         // как дождались - генерим отчет
-        try (SXSSFWorkbook writeWorkbook = new SXSSFWorkbook(100); ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-            SXSSFSheet reportSheet = writeWorkbook.createSheet("Топ проблемных районов");
+        try (SXSSFWorkbook writeWorkbook = new SXSSFWorkbook(100);
+             ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
 
-            CellStyle headerStyle = writeWorkbook.createCellStyle();
-            headerStyle.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            Font headerFont = writeWorkbook.createFont();
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
+            SXSSFSheet top3Sheet = writeWorkbook.createSheet("Топ-3: критичные");
+            SXSSFSheet top10Sheet = writeWorkbook.createSheet("Топ-10: общий список");
 
-            Row headerRow = reportSheet.createRow(0);
+            CellStyle headerStyle = createHeaderStyle(writeWorkbook);
             String[] columns = {"Ранг", "Муниципалитет", "Кол-во проблем", "Ключевые темы", "Отчёт AI"};
-            for (int i = 0; i < columns.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(columns[i]);
-                cell.setCellStyle(headerStyle);
-            }
 
-            int rowIndex = 1;
+            createHeaderRow(top3Sheet, columns, headerStyle);
+            createHeaderRow(top10Sheet, columns, headerStyle);
+
             int rank = 1;
-            for (FinalReportRow reportRow : results) {
-                Row dataRow = reportSheet.createRow(rowIndex++);
-                dataRow.createCell(0).setCellValue(rank++);
-                dataRow.createCell(1).setCellValue(reportRow.district());
-                dataRow.createCell(2).setCellValue(reportRow.problemCount());
-                dataRow.createCell(3).setCellValue(reportRow.topIssues());
-                dataRow.createCell(4).setCellValue(reportRow.summary());
+            for (int i = 0; i < results.length; i++) {
+                FinalReportRow reportRow = results[i];
+                fillDataRow(top10Sheet.createRow(i + 1), rank, reportRow);
+                if (i < 3) fillDataRow(top3Sheet.createRow(i + 1), rank, reportRow);
+                rank++;
             }
 
-            reportSheet.trackAllColumnsForAutoSizing();
-            for (int i = 0; i < columns.length; i++) reportSheet.autoSizeColumn(i);
+            autoSizeColumns(top3Sheet, columns.length);
+            autoSizeColumns(top10Sheet, columns.length);
 
             writeWorkbook.write(bos);
-//            writeWorkbook.close(); видимо оно не надо
+            writeWorkbook.dispose(); // не уверен, что это нужно .c.
 
-            log.info("Финальный отчет успешно сгенерирован и отправляется пользователю.");
+            log.info("Финальный отчет успешно сгенерирован и отправляется пользователю!!!");
             return bos.toByteArray();
+        }
+    }
+
+    private CellStyle createHeaderStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        style.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        Font font = workbook.createFont();
+        font.setBold(true);
+        style.setFont(font);
+        return style;
+    }
+
+    private void createHeaderRow(Sheet sheet, String[] columns, CellStyle style) {
+        Row headerRow = sheet.createRow(0);
+        for (int i = 0; i < columns.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(columns[i]);
+            cell.setCellStyle(style);
+        }
+    }
+
+    private void fillDataRow(Row dataRow, int rank, FinalReportRow reportRow) {
+        dataRow.createCell(0).setCellValue(rank);
+        dataRow.createCell(1).setCellValue(reportRow.district());
+        dataRow.createCell(2).setCellValue(reportRow.problemCount());
+        dataRow.createCell(3).setCellValue(reportRow.topIssues());
+        dataRow.createCell(4).setCellValue(reportRow.summary());
+    }
+
+    private void autoSizeColumns(SXSSFSheet sheet, int columnCount) {
+        sheet.trackAllColumnsForAutoSizing();
+        for (int i = 0; i < columnCount; i++) {
+            sheet.autoSizeColumn(i);
         }
     }
 
