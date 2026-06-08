@@ -17,7 +17,7 @@ class MDeBERTa:
             device="cuda" if torch.cuda.is_available() else "cpu"
         )
     _labels = ("проблема", "не проблема")
-    _instance: ClassVar[MDeBERTa]
+    _instance: ClassVar["MDeBERTa"]
     _queue: Queue[tuple[
         list[str],
         Future[PipelineOut]
@@ -27,7 +27,7 @@ class MDeBERTa:
         self._queue = Queue()
 
     @classmethod
-    def get_instance(cls) -> MDeBERTa:
+    def get_instance(cls) -> "MDeBERTa":
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance

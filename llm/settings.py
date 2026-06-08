@@ -13,10 +13,10 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env")
 
-    _instance: ClassVar[Settings | None] = None
+    _instance: ClassVar["Settings | None"] = None
 
     @classmethod
-    def get(cls) -> Settings:
+    def get(cls) -> "Settings":
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance

@@ -18,13 +18,9 @@ if TYPE_CHECKING:
 N_WORKERS = 10
 
 async def worker(  # noqa: PLR0913
-    queue: QueueInterface[Batch, list[Summary]],
-    classifier_pipe: ClassifierPipelineInterface[
-        Batch, dict[str, AreaProblem]
-    ],
-    processor_pipe: ProcessorPipelineInterface[
-        list[tuple[str, AreaProblems]], list[Summary]
-    ],
+    queue: "QueueInterface[Batch, list[Summary]]",
+    classifier_pipe: "ClassifierPipelineInterface[Batch, dict[str, AreaProblem]]",  # noqa: E501
+    processor_pipe: "ProcessorPipelineInterface[list[tuple[str, AreaProblems]], list[Summary]]",  # noqa: E501
     storage: dict[str, AreaProblems],
     barrier: asyncio.Barrier,
     done_flag: asyncio.Event,

@@ -24,7 +24,7 @@ type Backend = TokenizersBackend | SentencePieceBackend
 class Qwen:
     """Qwen processor-interface implementation."""
 
-    _model: ClassVar[PreTrainedModel] = (
+    _model: ClassVar["PreTrainedModel"] = (
         AutoModelForCausalLM.from_pretrained(
             Settings.get().QWEN_PATH, torch_dtype="auto", device_map="auto"
         )
@@ -33,10 +33,10 @@ class Qwen:
         Settings.get().QWEN_PATH
     )
     _labels = ("проблема", "не проблема")
-    _instance: ClassVar[Qwen]
+    _instance: ClassVar["Qwen"]
 
     @classmethod
-    def get_instance(cls) -> Qwen:
+    def get_instance(cls) -> "Qwen":
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance

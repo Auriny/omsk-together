@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from dto.incident import Incident  # noqa: TC001
+from dto.incident import Incident
 
 
 class Batch(BaseModel):

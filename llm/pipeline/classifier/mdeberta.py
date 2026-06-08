@@ -14,7 +14,7 @@ class MDeBERTaClassifier:
     def __init__(self) -> None:
         self._model = MDeBERTa.get_instance()
 
-    async def classify(self, items: Batch) -> dict[str, AreaProblem]:
+    async def classify(self, items: "Batch") -> dict[str, AreaProblem]:
         result = await self._model.filter([i.text for i in items.items])
         return {
             item.district: AreaProblem(
