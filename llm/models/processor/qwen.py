@@ -33,7 +33,7 @@ class Qwen:
         Settings.get().QWEN_PATH
     )
     _labels = ("проблема", "не проблема")
-    _instance: ClassVar["Qwen"]
+    _instance: ClassVar["Qwen"] = None
 
     @classmethod
     def get_instance(cls) -> "Qwen":

@@ -12,12 +12,12 @@ class MDeBERTa:
     """mDeBERTa classifier-interface implementation."""
 
     _model: ClassVar[ZeroShotClassificationPipeline] = pipeline(
-            "zero-shot-classifier",
+            "zero-shot-classification",
             model=Settings.get().MDEBERTA_PATH,
             device="cuda" if torch.cuda.is_available() else "cpu"
         )
     _labels = ("проблема", "не проблема")
-    _instance: ClassVar["MDeBERTa"]
+    _instance: ClassVar["MDeBERTa"] = None
     _queue: Queue[tuple[
         list[str],
         Future[PipelineOut]
