@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
+FROM nvidia/cuda:12.6.3-devel-ubuntu22.04
 
 RUN apt-get updata && apt-get install -y \
     python3 \
@@ -21,6 +21,7 @@ COPY . .
 RUN uv pip install huggingface_hub && \
     uv run hf download MoritzLaurer/mDeBERTa-v3-base-mnli-xnli --local-dir resources/mDeBERTa && \
     uv run hf download Qwen/Qwen3-14B-AWQ --local-dir resources/Qwen
+
 ENV CUDA_VISIBLE_DEVICES=0
 
 RUN uv sync
