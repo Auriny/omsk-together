@@ -1,0 +1,70 @@
+[project]
+name = "llm"
+version = "0.1.0"
+description = "LLM Service"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "accelerate>=1.13.0",
+    "aiohttp>=3.14.1",
+    "anyio>=4.13.0",
+    "gptqmodel>=7.1.0",
+    "gradio>=6.17.3",
+    "huggingface-hub>=1.18.0",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.14.1",
+    "redis[hiredis]>=8.0.0",
+    "torch>=2.12.0",
+    "torchvision>=0.27.0",
+    "transformers>=5.10.2",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.1.0",
+    "ruff>=0.15.16",
+]
+
+[tool.ruff]
+line-length = 79
+indent-width = 4
+target-version = "py313"
+
+[tool.ruff.lint]
+ignore = [
+    "D102",   # undocumented-public-method
+    "D103",   # undocumented-public-function
+    "D100",   # undocumented-public-module
+    "D104",   # undocumented-public-package
+    "D106",   # undocumented-public-nested-class
+    "D107",   # undocumented-public-init
+    "D203",   # one-blank-line-before-class
+    "D212",   # multi-line-summary-first-line
+    "COM812", # missing-trailing-comma
+    "RUF001", # ambiguous-unicode-character-string
+    "PTH123", # builtin-open
+    "A005",   # stdlib-module-shadowing
+]
+select = ["ALL"]
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-line-length = "dynamic"
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
+
+[tool.uv.sources]
+torchvision = [
+    { index = "pytorch_cu126" }
+]
+torch = [
+    { index = "pytorch_cu126"}
+]
+
+[[tool.uv.index]]
+name = "pytorch_cu126"
+url = "https://download.pytorch.org/whl/cu126"

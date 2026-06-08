@@ -1,0 +1,25 @@
+from dto import AreaProblems, Summary
+from models.processor import Qwen
+
+
+class QwenProcessor:
+    """Pipeline processor-interface implementation."""
+
+    _model: Qwen = None
+
+    def __init__(self) -> None:
+        self._model = Qwen.get_instance()
+
+    async def process(
+        self, items: list[tuple[str, AreaProblems]]
+    ) -> list[Summary]:
+        result = []
+        for i in items:
+            summary = await self._model.summarize(i[1].problems)
+            result.append(Summary(
+                district=i[0],
+                problemCount=i[1].problem_count,
+                topIssues=", ".join(i[1].topics),
+                summary=summary
+            ))
+        return result
