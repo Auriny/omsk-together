@@ -4,6 +4,6 @@ from pydantic import BaseModel
 class Incident(BaseModel):
     """Incident model."""
 
-    id: int
     district: str
+    topic: str
     text: str

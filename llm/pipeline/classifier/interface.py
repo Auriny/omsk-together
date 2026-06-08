@@ -4,8 +4,8 @@ T = TypeVar("T")
 V = TypeVar("V")
 
 @runtime_checkable
-class ClassifierInterface(Protocol[T, V]): # type: ignore[misc]
+class ClassifierPipelineInterface(Protocol[T, V]): # type: ignore[misc]
     """Interface for a classifier usage."""
 
-    def classify(self, item: T) -> V:
+    async def classify(self, items: T) -> V:
         """Classify an item and return its class."""

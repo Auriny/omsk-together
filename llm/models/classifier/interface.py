@@ -7,5 +7,5 @@ V = TypeVar("V")
 class ClassifierModelInterface(Protocol[T, V]): # type: ignore[misc]
     """Interface for a classifier model."""
 
-    def filter(self, item: T) -> V:
+    async def filter(self, itema: T) -> V:
         """Filter an item and return the result."""

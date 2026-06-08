@@ -4,8 +4,8 @@ T = TypeVar("T")
 V = TypeVar("V")
 
 @runtime_checkable
-class ProcessorInterface(Protocol[T, V]): # type: ignore[misc]
+class ProcessorPipelineInterface(Protocol[T, V]): # type: ignore[misc]
     """Interface for processing items in a pipeline."""
 
-    def process(self, item: T) -> V:
+    async def process(self, items: T) -> V:
         """Process an item and return the result."""

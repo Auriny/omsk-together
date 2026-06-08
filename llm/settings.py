@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,7 +13,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env")
 
-    _instance: Settings | None = None
+    _instance: ClassVar[Settings | None] = None
 
     @classmethod
     def get(cls) -> Settings:

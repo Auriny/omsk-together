@@ -18,6 +18,7 @@ venv/
 env/
 .env
 uv.lock
+test.py
 
 .huggingface/
 .cache/

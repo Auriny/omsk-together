@@ -7,5 +7,5 @@ V = TypeVar("V")
 class ProcessorModelInterface(Protocol[T, V]): # type: ignore[misc]
     """Interface for a processor model."""
 
-    def summarize(self, item: T) -> V:
+    async def summarize(self, items: T) -> V:
         """Summarize an item and return the result."""

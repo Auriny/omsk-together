@@ -7,4 +7,4 @@ class Batch(BaseModel):
     """Batch model."""
 
     is_last_batch: bool = Field(..., alias="isLastBatch")
-    items: list[Incident]
+    items: list[Incident | None]
