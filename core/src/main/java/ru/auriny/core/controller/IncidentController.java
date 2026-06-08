@@ -11,6 +11,7 @@ import ru.auriny.core.service.ExcelService;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 @RestController
@@ -24,8 +25,7 @@ public class IncidentController {
         byte[] excelReport = excelService.processAndGenerateReport(file);
 
         ByteArrayResource resource = new ByteArrayResource(excelReport);
-        var formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-        var time = formatter.format(Instant.now());
+        var time = LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
