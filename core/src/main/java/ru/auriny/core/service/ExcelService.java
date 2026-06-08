@@ -65,7 +65,7 @@ public class ExcelService {
         }
 
         // ждем ответ от llm сервиса
-        log.info("Ждем генерации саммари от Qwen..."); // V таймаут
+        log.info("Ждем генерации саммари..."); // V таймаут
         FinalReportRow[] results = aiQueueService.waitForResult(RedisKeys.QUEUE_RESULTS, FinalReportRow[].class, 1200);
 
         if (results == null || results.length == 0) {
@@ -76,8 +76,8 @@ public class ExcelService {
         try (SXSSFWorkbook writeWorkbook = new SXSSFWorkbook(100);
              ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
 
-            SXSSFSheet top3Sheet = writeWorkbook.createSheet("Топ-3: критичные");
-            SXSSFSheet top10Sheet = writeWorkbook.createSheet("Топ-10: общий список");
+            SXSSFSheet top3Sheet = writeWorkbook.createSheet("Топ3 критичные");
+            SXSSFSheet top10Sheet = writeWorkbook.createSheet("Топ10 общий список");
 
             CellStyle headerStyle = createHeaderStyle(writeWorkbook);
             String[] columns = {"Ранг", "Муниципалитет", "Кол-во проблем", "Ключевые темы", "Отчёт AI"};
