@@ -68,3 +68,4 @@ torch = [
 [[tool.uv.index]]
 name = "pytorch_cu126"
 url = "https://download.pytorch.org/whl/cu126"
+explicit = true

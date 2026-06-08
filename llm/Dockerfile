@@ -1,6 +1,6 @@
 FROM nvidia/cuda:12.6.3-devel-ubuntu22.04
 
-RUN apt-get updata && apt-get install -y \
+RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     gcc \
@@ -18,8 +18,8 @@ WORKDIR /app
 
 COPY . .
 
-RUN uv pip install huggingface_hub && \
-    uv run hf download MoritzLaurer/mDeBERTa-v3-base-mnli-xnli --local-dir resources/mDeBERTa && \
+RUN uv venv --seed && uv pip install huggingface_hub && \
+    uv run hf download MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7 --local-dir resources/mDeBERTa && \
     uv run hf download Qwen/Qwen3-14B-AWQ --local-dir resources/Qwen
 
 ENV CUDA_VISIBLE_DEVICES=0
