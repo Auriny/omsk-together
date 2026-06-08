@@ -1,7 +1,10 @@
+import logging
+
 from dto import AreaProblems, Summary
 from models.processor import Qwen
 
 
+logger = logging.getLogger(__name__)
 class QwenProcessor:
     """Pipeline processor-interface implementation."""
 
@@ -13,8 +16,10 @@ class QwenProcessor:
     async def process(
         self, items: list[tuple[str, AreaProblems]]
     ) -> list[Summary]:
+        logger.info("Start to process by QwenProcessor")
         result = []
         for i in items:
+            logger.debug("Trying to get summary")
             summary = await self._model.summarize(i[1].problems)
             result.append(Summary(
                 district=i[0],

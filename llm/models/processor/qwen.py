@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, ClassVar
 
 import huggingface_hub
@@ -18,6 +19,7 @@ if not hasattr(transformers.utils.hub, "create_repo"):
 if not hasattr(transformers.utils.hub, "list_repo_tree"):
     transformers.utils.hub.list_repo_tree = huggingface_hub.list_repo_tree
 
+logger = logging.getLogger(__name__)
 
 type Backend = TokenizersBackend | SentencePieceBackend
 
@@ -37,11 +39,13 @@ class Qwen:
 
     @classmethod
     def get_instance(cls) -> "Qwen":
+        logger.debug("Getting Qwen instance")
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
 
     async def summarize(self, items: list[str]) -> str:
+        logger.debug("Starting to summarize by Qwen")
         messages = [
             {
                 "role": "system",
@@ -80,16 +84,19 @@ class Qwen:
                 )
             }
         ]
+        logger.debug("Applying chat template")
         text = self._tokenizer.apply_chat_template(
             messages,
             tokenize=False,
             add_generation_prompt=True,
             enable_thinking=True
         )
+        logger.debug("Tokenize inputs")
         model_inputs = self._tokenizer(
             [text],
             return_tensors="pt"
         ).to(self._model.device)
+        logger.debug("Generate response")
         generated_ids = self._model.generate(
             **model_inputs,
             max_new_tokens=32768,
@@ -103,6 +110,7 @@ class Qwen:
             index = len(output_ids) - output_ids[::-1].index(151668)
         except ValueError:
             index = 0
+        logger.debug("Decoding Qwen response")
         return self._tokenizer.decode(
             output_ids[index:], skip_special_tokens=True
         ).strip("\n")
