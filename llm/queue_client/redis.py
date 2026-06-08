@@ -24,8 +24,10 @@ class RedisQueue:
         await self.redis.lpush("queue:analyze:results", payload)
 
     async def pop(self) -> Batch:
-        item = await self.redis.brpop("queue:analyze:tasks")
-        return Batch.parse_raw(item[1])
+            while True:
+                item = await self.redis.brpop("queue:analyze:tasks", timeout=30)
+                if item is not None:
+                    return Batch.parse_raw(item[1])
     
     async def close(self):
         await self.redis.aclose()
