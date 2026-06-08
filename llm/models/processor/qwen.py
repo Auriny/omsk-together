@@ -2,8 +2,9 @@ import logging
 from typing import TYPE_CHECKING, ClassVar
 
 import huggingface_hub
+import torch
 import transformers.utils.hub
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 from settings import Settings
 
@@ -23,12 +24,20 @@ logger = logging.getLogger(__name__)
 
 type Backend = TokenizersBackend | SentencePieceBackend
 
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_compute_dtype=torch.float16
+)
+
 class Qwen:
     """Qwen processor-interface implementation."""
 
     _model: ClassVar["PreTrainedModel"] = (
         AutoModelForCausalLM.from_pretrained(
-            Settings.get().QWEN_PATH, torch_dtype="auto", device_map="auto"
+            Settings.get().QWEN_PATH,
+            torch_dtype="auto",
+            device_map="auto",
+            quantization_config=bnb_config
         )
     )
     _tokenizer: Backend = AutoTokenizer.from_pretrained(
@@ -74,6 +83,10 @@ class Qwen:
                     "7. Запрещено использовать приветствия, вводные "
                     'конструкции ("Вот выжимка:", "Анализ показал:") '
                     "или списки. Начинай ответ сразу с главного факта.\n"
+                    "8. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНЫ любые рассуждения, планы действий, "
+                    'мысли вслух и комментарии (например, "Хорошо, давайте '
+                    'разберемся", "Мне нужно проанализировать", "Начну с..."). '
+                    "Выдавай ТОЛЬКО готовый итоговый текст из 3-4 предложений."
                 )
             },
             {
@@ -84,12 +97,13 @@ class Qwen:
                 )
             }
         ]
+        logger.debug(f"Prompt: {messages}")
         logger.debug("Applying chat template")
         text = self._tokenizer.apply_chat_template(
             messages,
             tokenize=False,
             add_generation_prompt=True,
-            enable_thinking=True
+            enable_thinking=False
         )
         logger.debug("Tokenize inputs")
         model_inputs = self._tokenizer(
@@ -99,9 +113,10 @@ class Qwen:
         logger.debug("Generate response")
         generated_ids = self._model.generate(
             **model_inputs,
-            max_new_tokens=32768,
+            max_new_tokens=256,
             do_sample=True,
-            temperature=0.1
+            temperature=0.3,
+            repetition_penalty=1.15
         )
         output_ids = generated_ids[0][
             len(model_inputs.input_ids[0]) :
@@ -111,6 +126,8 @@ class Qwen:
         except ValueError:
             index = 0
         logger.debug("Decoding Qwen response")
-        return self._tokenizer.decode(
+        response = self._tokenizer.decode(
             output_ids[index:], skip_special_tokens=True
         ).strip("\n")
+        logger.debug(f"Response {response}")
+        return response

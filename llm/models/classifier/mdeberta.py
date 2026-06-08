@@ -45,13 +45,14 @@ class MDeBERTa:
             logger.debug("Item and future were gotten")
             batch.extend(items)
             futures.append((len(items), future))
-            # while not self._queue.empty():
-            #     items, future = self._queue.get_nowait()
-            #     batch.extend(items)
-            #     futures.append((len(items), future))
+            while not self._queue.empty():
+                items, future = self._queue.get_nowait()
+                batch.extend(items)
+                futures.append((len(items), future))
             logger.debug(f"Count of tasks: {len(futures)}")
             try:
                 logger.debug("Starting mDeBERTa model by asyncio.to_thread()")
+                # result = self._model(batch, self._labels, multi_label=False, batch_size=16)
                 result: PipelineOut = await to_thread(
                     lambda: self._model(batch, self._labels, multi_label=False, batch_size=16) # noqa:B023
                 )
@@ -61,6 +62,7 @@ class MDeBERTa:
                     future.set_result(result[idx:idx+size])
                     idx += size
             except Exception as e: # noqa: BLE001
+                logger.debug(f"ERROR: {e}")
                 for _, future in futures:
                     future.set_exception(e)
 

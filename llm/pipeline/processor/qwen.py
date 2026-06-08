@@ -20,11 +20,11 @@ class QwenProcessor:
         result = []
         for i in items:
             logger.debug("Trying to get summary")
-            summary = await self._model.summarize(i[1].problems)
+            summary = await self._model.summarize(i[1].problems[:25])
             result.append(Summary(
                 district=i[0],
                 problemCount=i[1].problem_count,
-                topIssues=", ".join(i[1].topics),
+                topIssues=", ".join(i[1].topics[:3]),
                 summary=summary
             ))
         return result
