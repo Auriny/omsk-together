@@ -35,7 +35,7 @@ public class ExcelService {
 
     public ReportResult processAndGenerateReport(MultipartFile file) throws IOException {
         log.info("Началась обработка файла: {}", file.getOriginalFilename());
-        // чтение и отправка батчей
+
         try (InputStream is = file.getInputStream();
              Workbook readWorkbook = StreamingReader.builder()
                      .rowCacheSize(100)
@@ -52,9 +52,9 @@ public class ExcelService {
                     continue;
                 }
 
-                String topicGroup = getCellAsString(row, 19); // T: Группа тем
-                String district = getCellAsString(row, 22); // W: Муниципалитет
-                String text = getCellAsString(row, 34); // AI: Текст инцидента
+                String topicGroup = getCellAsString(row, 19);
+                String district = getCellAsString(row, 22);
+                String text = getCellAsString(row, 34);
 
                 if (text == null || text.isBlank()) continue;
 
@@ -71,7 +71,6 @@ public class ExcelService {
             aiQueueService.pushTask(RedisKeys.QUEUE_TASKS, new AnalyzeTaskBatch(true, List.of()));
         }
 
-        // ждем ответ от llm сервиса
         log.info("Ждем генерации саммари...");
         FinalReportRow[] results = aiQueueService.waitForResult(RedisKeys.QUEUE_RESULTS, FinalReportRow[].class, 1200);
         String grandSummary = aiQueueService.waitForResult(RedisKeys.QUEUE_SUMMARY, String.class, 1200);
@@ -80,18 +79,23 @@ public class ExcelService {
             throw new RuntimeException("Не удалось получить результат от AI-модуля (таймаут или ошибка)");
         }
 
-        byte[] excelBytes;
-        try (SXSSFWorkbook writeWorkbook = new SXSSFWorkbook(100);
-             ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+        byte[] top3ExcelBytes;
+        byte[] top10ExcelBytes;
 
-            SXSSFSheet top3Sheet = writeWorkbook.createSheet("Топ3 критичные");
-            SXSSFSheet top10Sheet = writeWorkbook.createSheet("Топ10 общий список");
+        try (SXSSFWorkbook top3Workbook = new SXSSFWorkbook(100);
+             SXSSFWorkbook top10Workbook = new SXSSFWorkbook(100);
+             ByteArrayOutputStream bosTop3 = new ByteArrayOutputStream();
+             ByteArrayOutputStream bosTop10 = new ByteArrayOutputStream()) {
 
-            CellStyle headerStyle = createHeaderStyle(writeWorkbook);
+            SXSSFSheet top3Sheet = top3Workbook.createSheet("Топ3 критичные");
+            SXSSFSheet top10Sheet = top10Workbook.createSheet("Топ10 общий список");
+
+            CellStyle top3HeaderStyle = createHeaderStyle(top3Workbook, IndexedColors.ROSE.getIndex());
+            CellStyle top10HeaderStyle = createHeaderStyle(top10Workbook, IndexedColors.PALE_BLUE.getIndex());
+
             String[] columns = {"Ранг", "Муниципалитет", "Кол-во проблем", "Ключевые темы", "Отчёт AI"};
-
-            createHeaderRow(top3Sheet, columns, headerStyle);
-            createHeaderRow(top10Sheet, columns, headerStyle);
+            createHeaderRow(top3Sheet, columns, top3HeaderStyle);
+            createHeaderRow(top10Sheet, columns, top10HeaderStyle);
 
             int rank = 1;
             for (int i = 0; i < results.length; i++) {
@@ -104,15 +108,19 @@ public class ExcelService {
             autoSizeColumns(top3Sheet, columns.length);
             autoSizeColumns(top10Sheet, columns.length);
 
-            writeWorkbook.write(bos);
-            writeWorkbook.dispose();
-            excelBytes = bos.toByteArray();
+            top3Workbook.write(bosTop3);
+            top3Workbook.dispose();
+            top3ExcelBytes = bosTop3.toByteArray();
+
+            top10Workbook.write(bosTop10);
+            top10Workbook.dispose();
+            top10ExcelBytes = bosTop10.toByteArray();
         }
 
         byte[] wordBytes = createWordReport(grandSummary);
 
         log.info("Файлы сгенерированы! Упаковываем в ZIP...");
-        byte[] zipBytes = createZipArchive(excelBytes, wordBytes);
+        byte[] zipBytes = createZipArchive(top3ExcelBytes, top10ExcelBytes, wordBytes);
         return new ReportResult(zipBytes, grandSummary);
     }
 
@@ -141,13 +149,18 @@ public class ExcelService {
         }
     }
 
-    private byte[] createZipArchive(byte[] excelBytes, byte[] wordBytes) throws IOException {
+    private byte[] createZipArchive(byte[] top3ExcelBytes, byte[] top10ExcelBytes, byte[] wordBytes) throws IOException {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
              ZipOutputStream zos = new ZipOutputStream(bos)) {
 
-            ZipEntry excelEntry = new ZipEntry("report.xlsx");
-            zos.putNextEntry(excelEntry);
-            zos.write(excelBytes);
+            ZipEntry top3Entry = new ZipEntry("top3_report.xlsx");
+            zos.putNextEntry(top3Entry);
+            zos.write(top3ExcelBytes);
+            zos.closeEntry();
+
+            ZipEntry top10Entry = new ZipEntry("top10_report.xlsx");
+            zos.putNextEntry(top10Entry);
+            zos.write(top10ExcelBytes);
             zos.closeEntry();
 
             ZipEntry wordEntry = new ZipEntry("summary.docx");
@@ -159,9 +172,9 @@ public class ExcelService {
         }
     }
 
-    private CellStyle createHeaderStyle(Workbook workbook) {
+    private CellStyle createHeaderStyle(Workbook workbook, short colorIndex) {
         CellStyle style = workbook.createCellStyle();
-        style.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
+        style.setFillForegroundColor(colorIndex);
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         Font font = workbook.createFont();
         font.setBold(true);
