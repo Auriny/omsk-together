@@ -15,11 +15,11 @@ if TYPE_CHECKING:
     from pipeline.processor import ProcessorPipelineInterface
     from queue_client.interface import QueueInterface
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger()
 
-N_WORKERS = 40
+N_WORKERS = 15
 
 async def worker(  # noqa: PLR0913
     queue: "QueueInterface[Batch, list[Summary], str]",
@@ -27,12 +27,13 @@ async def worker(  # noqa: PLR0913
     processor_pipe: "ProcessorPipelineInterface[list[tuple[str, AreaProblems]], list[Summary], str]",  # noqa: E501
     storage: dict[str, AreaProblems],
     condition: asyncio.Condition,
-    active_tasks: list[int]
+    active_tasks: list[int],
+    tasks_complited: list[int]
 ) -> None:
     while True:
         data = await queue.pop()
-        msg = f"Is last batch: {data.is_last_batch}"
-        logger.debug(msg)
+        msg = f"Is last batch: {data.is_last_batch}\nTasks Complited: {tasks_complited[0]}"
+        logger.info(msg)
         if not data.is_last_batch:
             async with condition:
                 active_tasks[0] += 1
@@ -50,6 +51,7 @@ async def worker(  # noqa: PLR0913
             finally:
                 async with condition:
                     active_tasks[0] -= 1
+                    tasks_complited[0] += 1
                     condition.notify_all()
         else:
             logger.debug("Last batch was received")
@@ -74,6 +76,7 @@ async def main() -> None:
     condition = asyncio.Condition()
     storage: dict[str, AreaProblems] = defaultdict()
     active_tasks = [0]
+    tasks_complited = [0]
     inference_loop = asyncio.create_task(
         MDeBERTa.get_instance().run_inference_loop()
     )
@@ -84,7 +87,8 @@ async def main() -> None:
             QwenProcessor(),
             storage,
             condition,
-            active_tasks
+            active_tasks,
+            tasks_complited
         )
         for _ in range(N_WORKERS)
     ]

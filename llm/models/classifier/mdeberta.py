@@ -13,11 +13,7 @@ type PipelineOut = list[dict[str, str | list[str] | list[float]]]
 class MDeBERTa:
     """mDeBERTa classifier-interface implementation."""
 
-    _model: ClassVar[ZeroShotClassificationPipeline] = pipeline(
-            "zero-shot-classification",
-            model=Settings.get().MDEBERTA_PATH,
-            device=0
-        )
+    _model: ClassVar[ZeroShotClassificationPipeline] = None
     _labels = ("проблема", "не проблема")
     _instance: ClassVar["MDeBERTa"] = None
     _queue: Queue[tuple[
@@ -27,6 +23,22 @@ class MDeBERTa:
 
     def __init__(self) -> None:
         self._queue = Queue()
+        self._init_model()
+    
+    @classmethod
+    def _init_model(cls) -> None:
+        if cls._model is None:
+            logger.info("Initializing mDeBERTa model with optimizations")
+            cls._model = pipeline(
+                "zero-shot-classification",
+                model=Settings.get().MDEBERTA_PATH,
+                device=0,
+                # model_kwargs={
+                #     "torch_dtype": "float16"
+                # }
+            )
+            # cls._model.model.half()
+            logger.info("Model initialized with half precision")
 
     @classmethod
     def get_instance(cls) -> "MDeBERTa":
@@ -49,7 +61,7 @@ class MDeBERTa:
                 batch.extend(items)
                 futures.append((len(items), future))
             msg = f"Count of tasks: {len(futures)}"
-            logger.debug(msg)
+            logger.info(msg)
             try:
                 logger.info("Starting mDeBERTa model by asyncio.to_thread()")
                 result: PipelineOut = await to_thread(
@@ -57,7 +69,9 @@ class MDeBERTa:
                         batch, # noqa: B023
                         self._labels,
                         multi_label=False,
-                        batch_size=16
+                        batch_size=16,
+                        # truncation=True,
+                        # max_length=128
                     )
                 )
                 idx = 0
