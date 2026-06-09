@@ -6,11 +6,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.auriny.core.dto.AnalyzeTaskBatch;
 import ru.auriny.core.dto.FinalReportRow;
 import ru.auriny.core.dto.IncidentRow;
+import ru.auriny.core.dto.ReportResult;
 import ru.auriny.core.util.RedisKeys;
 
 import java.io.ByteArrayOutputStream;
@@ -18,6 +23,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Slf4j
 @Service
@@ -26,7 +33,7 @@ public class ExcelService {
     private final AiQueueService aiQueueService;
     private static final int BATCH_SIZE = 50;
 
-    public byte[] processAndGenerateReport(MultipartFile file) throws IOException {
+    public ReportResult processAndGenerateReport(MultipartFile file) throws IOException {
         log.info("Началась обработка файла: {}", file.getOriginalFilename());
         // чтение и отправка батчей
         try (InputStream is = file.getInputStream();
@@ -65,14 +72,15 @@ public class ExcelService {
         }
 
         // ждем ответ от llm сервиса
-        log.info("Ждем генерации саммари..."); // V таймаут
+        log.info("Ждем генерации саммари...");
         FinalReportRow[] results = aiQueueService.waitForResult(RedisKeys.QUEUE_RESULTS, FinalReportRow[].class, 1200);
+        String grandSummary = aiQueueService.waitForResult(RedisKeys.QUEUE_SUMMARY, String.class, 1200);
 
-        if (results == null || results.length == 0) {
+        if (results == null || results.length == 0 || grandSummary == null) {
             throw new RuntimeException("Не удалось получить результат от AI-модуля (таймаут или ошибка)");
         }
 
-        // как дождались - генерим отчет
+        byte[] excelBytes;
         try (SXSSFWorkbook writeWorkbook = new SXSSFWorkbook(100);
              ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
 
@@ -97,9 +105,56 @@ public class ExcelService {
             autoSizeColumns(top10Sheet, columns.length);
 
             writeWorkbook.write(bos);
-            writeWorkbook.dispose(); // не уверен, что это нужно .c.
+            writeWorkbook.dispose();
+            excelBytes = bos.toByteArray();
+        }
 
-            log.info("Финальный отчет успешно сгенерирован и отправляется пользователю!!!");
+        byte[] wordBytes = createWordReport(grandSummary);
+
+        log.info("Файлы сгенерированы! Упаковываем в ZIP...");
+        byte[] zipBytes = createZipArchive(excelBytes, wordBytes);
+        return new ReportResult(zipBytes, grandSummary);
+    }
+
+    private byte[] createWordReport(String grandSummary) throws IOException {
+        try (XWPFDocument document = new XWPFDocument();
+             ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+
+            XWPFParagraph title = document.createParagraph();
+            title.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun titleRun = title.createRun();
+            titleRun.setText("Глобальная аналитическая выжимка");
+            titleRun.setBold(true);
+            titleRun.setFontSize(16);
+
+            XWPFParagraph body = document.createParagraph();
+            XWPFRun bodyRun = body.createRun();
+
+            String[] lines = grandSummary.split("\n");
+            for (int i = 0; i < lines.length; i++) {
+                bodyRun.setText(lines[i]);
+                if (i < lines.length - 1) bodyRun.addBreak();
+            }
+
+            document.write(bos);
+            return bos.toByteArray();
+        }
+    }
+
+    private byte[] createZipArchive(byte[] excelBytes, byte[] wordBytes) throws IOException {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             ZipOutputStream zos = new ZipOutputStream(bos)) {
+
+            ZipEntry excelEntry = new ZipEntry("report.xlsx");
+            zos.putNextEntry(excelEntry);
+            zos.write(excelBytes);
+            zos.closeEntry();
+
+            ZipEntry wordEntry = new ZipEntry("summary.docx");
+            zos.putNextEntry(wordEntry);
+            zos.write(wordBytes);
+            zos.closeEntry();
+
             return bos.toByteArray();
         }
     }
