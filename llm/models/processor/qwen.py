@@ -1,8 +1,14 @@
+import logging
 from typing import TYPE_CHECKING, ClassVar
 
 import huggingface_hub
+import torch
 import transformers.utils.hub
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+)
 
 from settings import Settings
 
@@ -18,15 +24,24 @@ if not hasattr(transformers.utils.hub, "create_repo"):
 if not hasattr(transformers.utils.hub, "list_repo_tree"):
     transformers.utils.hub.list_repo_tree = huggingface_hub.list_repo_tree
 
+logger = logging.getLogger(__name__)
 
 type Backend = TokenizersBackend | SentencePieceBackend
+
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_compute_dtype=torch.float16
+)
 
 class Qwen:
     """Qwen processor-interface implementation."""
 
     _model: ClassVar["PreTrainedModel"] = (
         AutoModelForCausalLM.from_pretrained(
-            Settings.get().QWEN_PATH, torch_dtype="auto", device_map="auto"
+            Settings.get().QWEN_PATH,
+            torch_dtype="auto",
+            device_map="auto",
+            quantization_config=bnb_config
         )
     )
     _tokenizer: Backend = AutoTokenizer.from_pretrained(
@@ -37,11 +52,13 @@ class Qwen:
 
     @classmethod
     def get_instance(cls) -> "Qwen":
+        logger.debug("Getting Qwen instance")
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
 
     async def summarize(self, items: list[str]) -> str:
+        logger.info("Starting to summarize by Qwen")
         messages = [
             {
                 "role": "system",
@@ -70,31 +87,42 @@ class Qwen:
                     "7. Запрещено использовать приветствия, вводные "
                     'конструкции ("Вот выжимка:", "Анализ показал:") '
                     "или списки. Начинай ответ сразу с главного факта.\n"
+                    "8. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНЫ любые рассуждения, планы "
+                    'действий, мысли вслух и комментарии (например, "Хорошо, '
+                    'давайте разберемся", "Мне нужно проанализировать", '
+                    '"Начну с..."). Выдавай ТОЛЬКО готовый итоговый '
+                    "текст из 3-4 предложений."
                 )
             },
             {
                 "role": "user",
                 "content": (
                     "Проанализируй следующие обращения и составь выжимку:\n\n"
-                    f"{"\n".join(items)}"
+                    f"{"\n\n".join(items)}"
                 )
             }
         ]
+        msg = f"Prompt: {messages}"
+        logger.debug(msg)
+        logger.debug("Applying chat template")
         text = self._tokenizer.apply_chat_template(
             messages,
             tokenize=False,
             add_generation_prompt=True,
-            enable_thinking=True
+            enable_thinking=False
         )
+        logger.debug("Tokenize inputs")
         model_inputs = self._tokenizer(
             [text],
             return_tensors="pt"
         ).to(self._model.device)
+        logger.debug("Generate response")
         generated_ids = self._model.generate(
             **model_inputs,
-            max_new_tokens=32768,
+            max_new_tokens=256,
             do_sample=True,
-            temperature=0.1
+            temperature=0.3,
+            repetition_penalty=1.15
         )
         output_ids = generated_ids[0][
             len(model_inputs.input_ids[0]) :
@@ -103,6 +131,10 @@ class Qwen:
             index = len(output_ids) - output_ids[::-1].index(151668)
         except ValueError:
             index = 0
-        return self._tokenizer.decode(
+        logger.debug("Decoding Qwen response")
+        response = self._tokenizer.decode(
             output_ids[index:], skip_special_tokens=True
         ).strip("\n")
+        msg = f"Response {response}"
+        logger.debug(msg)
+        return response

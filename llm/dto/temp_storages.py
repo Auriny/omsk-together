@@ -13,5 +13,6 @@ class AreaProblems:
 class AreaProblem:
     """Temporary storage for a problem in an area."""
 
+    district: str
     topic: str
     problem: str
