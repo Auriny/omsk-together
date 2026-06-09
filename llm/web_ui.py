@@ -9,8 +9,7 @@ API_ENDPOINT = "http://localhost:8080/api/upload"
 
 ALLOWED_SUFFIXES = [".xlsx"]
 
-async def upload_excel(file_path: str) -> tuple[str, str | None, str]:  # noqa: PLR0911
-
+async def upload_excel(file_path: str) -> tuple[str, str | None, str]:
     if file_path is None:
         return "Пожалуйста, загрузите файл.", None, ""
 
@@ -71,9 +70,7 @@ async def upload_excel(file_path: str) -> tuple[str, str | None, str]:  # noqa: 
 
         out_filename = "result.zip"
         if "filename=" in content_disposition:
-            out_filename = content_disposition.split(
-                "filename="
-            )[-1].strip().strip('"')
+            out_filename = content_disposition.split("filename=")[-1].strip().strip('"')
         elif "csv" in content_type:
             out_filename = "result.csv"
 
