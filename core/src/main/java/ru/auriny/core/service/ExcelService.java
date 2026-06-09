@@ -168,6 +168,8 @@ public class ExcelService {
             zos.write(wordBytes);
             zos.closeEntry();
 
+            zos.finish();
+
             return bos.toByteArray();
         }
     }
