@@ -2,7 +2,7 @@ from typing import Protocol, TypeVar, runtime_checkable
 
 T = TypeVar("T")
 V = TypeVar("V")
-R = TypeVar["R"]
+R = TypeVar("R")
 
 @runtime_checkable
 class ProcessorPipelineInterface(Protocol[T, V, R]): # type: ignore[misc]

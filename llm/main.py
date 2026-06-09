@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 logger = logging.getLogger()
 
-N_WORKERS = 20
+N_WORKERS = 40
 
 async def worker(  # noqa: PLR0913
     queue: "QueueInterface[Batch, list[Summary], str]",
@@ -63,11 +63,8 @@ async def worker(  # noqa: PLR0913
             )[:10]
             storage.clear()
             summary_list = await processor_pipe.process(sorted_data_list)
-            summary_of_summary = cast(
-                "str",
-                await processor_pipe.summarize_by_summary(
-                    summary_list
-                )
+            summary_of_summary = await processor_pipe.summarize_by_summary(
+                summary_list
             )
             await queue.push(summary_list)
             await queue.summary_push(summary_of_summary)

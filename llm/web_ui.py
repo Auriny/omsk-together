@@ -5,7 +5,7 @@ import aiohttp
 import gradio as gr
 from anyio import Path, open_file
 
-API_ENDPOINT = "http://localhost:6379/api/upload"
+API_ENDPOINT = "http://localhost:8080/api/upload"
 
 ALLOWED_SUFFIXES = [".xlsx"]
 
@@ -18,7 +18,7 @@ async def upload_excel(file_path: str) -> tuple[str, str | None, str]:  # noqa: 
     if not await apath.exists():
         return "Файл не найден.", None, ""
 
-    suffix = (await apath.name).rsplit(".", 1)[-1]
+    suffix = apath.name.rsplit(".", 1)[-1]
     suffix = f".{suffix.lower()}"
     if suffix not in ALLOWED_SUFFIXES:
         return (
@@ -32,7 +32,8 @@ async def upload_excel(file_path: str) -> tuple[str, str | None, str]:  # noqa: 
         async with await open_file(file_path, "rb") as f:
             file_bytes = await f.read()
 
-        filename = str(apath).rsplit("/", 1)[-1]
+        # filename = str(await apath).rsplit("/", 1)[-1]
+        filename = apath.name
 
         timeout = aiohttp.ClientTimeout(total=2400) # 40 минут таймаут
         async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -63,7 +64,7 @@ async def upload_excel(file_path: str) -> tuple[str, str | None, str]:  # noqa: 
 
                 raw_summary = response.headers.get("X-Summary", "")
                 grand_summary = (
-                    urllib.parse.unquote(raw_summary)
+                    urllib.parse.unquote_plus(raw_summary)
                     if raw_summary else "Выжимка не найдена."
                 )
                 resp_bytes = await response.read()
@@ -76,7 +77,7 @@ async def upload_excel(file_path: str) -> tuple[str, str | None, str]:  # noqa: 
         elif "csv" in content_type:
             out_filename = "result.csv"
 
-        tmp_dir = await Path(tempfile.mkdtemp())
+        tmp_dir = Path(tempfile.mkdtemp())
         out_path = tmp_dir / out_filename
 
         async with await open_file(out_path, "wb") as f:
@@ -226,4 +227,8 @@ with gr.Blocks(
 
 
 if __name__ == "__main__":
-    demo.launch(max_file_size="10gb")
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=80,
+        max_file_size="10gb"
+    )
