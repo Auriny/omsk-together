@@ -1,9 +1,7 @@
 import asyncio
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, cast
-
-import torch
+from typing import TYPE_CHECKING
 
 from dto import AreaProblems
 from models.classifier import MDeBERTa
