@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass, field
 
 
@@ -6,7 +7,7 @@ class AreaProblems:
     """Temporary storage for problems in an area."""
 
     problem_count: int = 0
-    topics: list[str] = field(default_factory=list)
+    topics: dict[str, int] = field(default_factory=defaultdict)
     problems: list[str] = field(default_factory=list)
 
 @dataclass

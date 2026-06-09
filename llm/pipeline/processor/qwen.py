@@ -23,7 +23,13 @@ class QwenProcessor:
             result.append(Summary(
                 district=i[0],
                 problemCount=i[1].problem_count,
-                topIssues=", ".join(i[1].topics[:3]),
+                topIssues=", ".join([
+                    i[0] for i in sorted(
+                        i[1].topics.items(),
+                        key=lambda x: x[1],
+                        reverse=True
+                    )
+                ][:3]),
                 summary=summary
             ))
         return result

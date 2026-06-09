@@ -44,7 +44,8 @@ async def worker(  # noqa: PLR0913
                         storage[item.district] = AreaProblems()
                     storage[item.district].problem_count += 1
                     if item.topic not in storage[item.district].topics:
-                        storage[item.district].topics.append(item.topic)
+                        storage[item.district].topics[item.topic] = 0
+                    storage[item.district].topics[item.topic] += 1
                     storage[item.district].problems.append(item.problem)
             finally:
                 async with condition:
