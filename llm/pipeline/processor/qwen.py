@@ -3,7 +3,6 @@ import logging
 from dto import AreaProblems, Summary
 from models.processor import Qwen
 
-
 logger = logging.getLogger(__name__)
 class QwenProcessor:
     """Pipeline processor-interface implementation."""
@@ -28,3 +27,9 @@ class QwenProcessor:
                 summary=summary
             ))
         return result
+
+    async def summarize_by_summary(self, items: list[Summary]) -> str:
+        logger.info("Start summarize by summary")
+        return await self._model.summarize_summary(
+            "\n\n".join([i.summary for i in items])
+        )

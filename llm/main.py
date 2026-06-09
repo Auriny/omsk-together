@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from dto import AreaProblems
 from models.classifier import MDeBERTa
@@ -22,9 +22,9 @@ logger = logging.getLogger()
 N_WORKERS = 20
 
 async def worker(  # noqa: PLR0913
-    queue: "QueueInterface[Batch, list[Summary]]",
+    queue: "QueueInterface[Batch, list[Summary], str]",
     classifier_pipe: "ClassifierPipelineInterface[Batch, list[AreaProblem]]",
-    processor_pipe: "ProcessorPipelineInterface[list[tuple[str, AreaProblems]], list[Summary]]",  # noqa: E501
+    processor_pipe: "ProcessorPipelineInterface[list[tuple[str, AreaProblems]], list[Summary], str]",  # noqa: E501
     storage: dict[str, AreaProblems],
     condition: asyncio.Condition,
     active_tasks: list[int]
@@ -61,7 +61,14 @@ async def worker(  # noqa: PLR0913
             )[:10]
             storage.clear()
             summary_list = await processor_pipe.process(sorted_data_list)
+            summary_of_summary = cast(
+                "str",
+                await processor_pipe.summarize_by_summary(
+                    summary_list
+                )
+            )
             await queue.push(summary_list)
+            await queue.summary_push(summary_of_summary)
 
 
 

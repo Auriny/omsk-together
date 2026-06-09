@@ -26,20 +26,24 @@ class RedisQueue:
         )
 
     async def push(self, items: "list[Summary]") -> None:
-            logger.info("Pushing summary to Redis")
-            payload = json.dumps([i.dict(by_alias=True) for i in items])
-            await self._redis.lpush("queue:analyze:results", payload)
+        logger.info("Pushing summary to Redis")
+        payload = json.dumps([i.dict(by_alias=True) for i in items])
+        await self._redis.lpush("queue:analyze:results", payload)
+
+    async def summary_push(self, item: str) -> None:
+        logger.info("Pusshing summary by summary to Redis.")
+        await self._redis.lpush("queue:analyze:summary", json.dumps(item))
 
     async def pop(self) -> Batch:
-            while True:
-                logger.info("Redis client try to get batch by brpop")
-                item = await self._redis.brpop(
-                    "queue:analyze:tasks",
-                    timeout=30
-                )
-                logger.debug(
-                    "Looks like redis client get some entitie. "
-                    "Trying to validate"
-                )
-                if item is not None:
-                    return Batch.model_validate_json(item[1])
+        while True:
+            logger.info("Redis client try to get batch by brpop")
+            item = await self._redis.brpop(
+                "queue:analyze:tasks",
+                timeout=30
+            )
+            logger.debug(
+                "Looks like redis client get some entitie. "
+                "Trying to validate"
+            )
+            if item is not None:
+                return Batch.model_validate_json(item[1])
