@@ -39,8 +39,8 @@
 
 * Python
 * PyTorch
-* HuggingFace (`mDeBERTa-v3`, `Qwen3-8B`)
-* aiohttp
+* Transformers (`mDeBERTa-v3`, `Qwen3-8B`)
+* Gradio
 
 ### Инфраструктура и UI
 
