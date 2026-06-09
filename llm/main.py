@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger()
 
-N_WORKERS = 15
+N_WORKERS = 10
 
 async def worker(  # noqa: PLR0913
     queue: "QueueInterface[Batch, list[Summary], str]",

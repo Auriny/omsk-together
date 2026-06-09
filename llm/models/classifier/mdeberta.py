@@ -2,6 +2,7 @@ import logging
 from asyncio import Future, Queue, get_event_loop, to_thread
 from typing import ClassVar
 
+import torch
 from transformers import ZeroShotClassificationPipeline, pipeline
 
 from settings import Settings
@@ -33,11 +34,8 @@ class MDeBERTa:
                 "zero-shot-classification",
                 model=Settings.get().MDEBERTA_PATH,
                 device=0,
-                # model_kwargs={
-                #     "torch_dtype": "float16"
-                # }
+                # dtype=torch.float16
             )
-            # cls._model.model.half()
             logger.info("Model initialized with half precision")
 
     @classmethod
@@ -64,16 +62,15 @@ class MDeBERTa:
             logger.info(msg)
             try:
                 logger.info("Starting mDeBERTa model by asyncio.to_thread()")
-                result: PipelineOut = await to_thread(
-                    lambda: self._model(
-                        batch, # noqa: B023
-                        self._labels,
-                        multi_label=False,
-                        batch_size=16,
-                        # truncation=True,
-                        # max_length=128
+                with torch.no_grad():
+                    result: PipelineOut = await to_thread(
+                        lambda: self._model(
+                            batch, # noqa: B023
+                            self._labels,
+                            multi_label=False,
+                            batch_size=16,
+                        )
                     )
-                )
                 idx = 0
                 for size, future in futures:
                     logger.debug("Set result to future")
