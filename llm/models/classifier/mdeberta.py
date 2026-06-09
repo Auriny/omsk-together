@@ -2,7 +2,6 @@ import logging
 from asyncio import Future, Queue, get_event_loop, to_thread
 from typing import ClassVar
 
-import torch
 from transformers import ZeroShotClassificationPipeline, pipeline
 
 from settings import Settings
@@ -38,7 +37,7 @@ class MDeBERTa:
 
     async def run_inference_loop(self) -> None:
         while True:
-            logger.debug("Trying to get future from queue")
+            logger.info("Trying to get future from queue")
             batch: list[str] = []
             futures: list[tuple[int, Future]] = []
             items, future = await self._queue.get()
@@ -49,25 +48,31 @@ class MDeBERTa:
                 items, future = self._queue.get_nowait()
                 batch.extend(items)
                 futures.append((len(items), future))
-            logger.debug(f"Count of tasks: {len(futures)}")
+            msg = f"Count of tasks: {len(futures)}"
+            logger.debug(msg)
             try:
-                logger.debug("Starting mDeBERTa model by asyncio.to_thread()")
-                # result = self._model(batch, self._labels, multi_label=False, batch_size=16)
+                logger.info("Starting mDeBERTa model by asyncio.to_thread()")
                 result: PipelineOut = await to_thread(
-                    lambda: self._model(batch, self._labels, multi_label=False, batch_size=16) # noqa:B023
+                    lambda: self._model(
+                        batch, # noqa: B023
+                        self._labels,
+                        multi_label=False,
+                        batch_size=16
+                    )
                 )
                 idx = 0
                 for size, future in futures:
-                    logger.debug(f"Set result to future: {future}")
+                    logger.debug("Set result to future")
                     future.set_result(result[idx:idx+size])
                     idx += size
-            except Exception as e: # noqa: BLE001
-                logger.debug(f"ERROR: {e}")
+            except Exception as e:
+                msg = f"!!! ERROR:\n{e}"
+                logger.exception(msg)
                 for _, future in futures:
                     future.set_exception(e)
 
     async def filter(self, items: list[str]) -> list[str]:
-        logger.debug("Start filtering by mDeBERTa")
+        logger.info("Start filtering by mDeBERTa")
         future: Future[PipelineOut] = get_event_loop().create_future()
         await self._queue.put((items, future))
         logger.debug("Await future")

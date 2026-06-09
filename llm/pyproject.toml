@@ -8,7 +8,6 @@ dependencies = [
     "accelerate>=1.13.0",
     "aiohttp>=3.14.1",
     "anyio>=4.13.0",
-    # "gptqmodel>=7.1.0",
     "bitsandbytes>=0.49.2",
     "gradio>=6.17.3",
     "huggingface-hub>=1.18.0",
@@ -60,13 +59,13 @@ ignore_missing_imports = true
 
 [tool.uv.sources]
 torchvision = [
-    { index = "pytorch_cu126" }
+    { index = "pytorch_cu128" }
 ]
 torch = [
-    { index = "pytorch_cu126"}
+    { index = "pytorch_cu128"}
 ]
 
 [[tool.uv.index]]
-name = "pytorch_cu126"
+name = "pytorch_cu128"
 url = "https://download.pytorch.org/whl/cu128"
 explicit = true

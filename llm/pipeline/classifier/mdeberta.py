@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
 class MDeBERTaClassifier:
     """Pipeline classifier-interface implementation."""
 
@@ -18,7 +19,7 @@ class MDeBERTaClassifier:
         self._model = MDeBERTa.get_instance()
 
     async def classify(self, items: "Batch") -> list[AreaProblem]:
-        logging.info("Start to classify by mDeBERTa pipeline")
+        logger.info("Start to classify by mDeBERTa pipeline")
         result = await self._model.filter([i.text for i in items.items])
         return [
             AreaProblem(

@@ -24,16 +24,17 @@ logger = logging.getLogger()
 N_WORKERS = 20
 
 async def worker(  # noqa: PLR0913
-    queue: "QueueInterface[Batch, list[Summary]]",
-    classifier_pipe: "ClassifierPipelineInterface[Batch, list[AreaProblem]]",  # noqa: E501
-    processor_pipe: "ProcessorPipelineInterface[list[tuple[str, AreaProblems]], list[Summary]]",  # noqa: E501
+    queue: "QueueInterface[Batch, list[Summary], str]",
+    classifier_pipe: "ClassifierPipelineInterface[Batch, list[AreaProblem]]",
+    processor_pipe: "ProcessorPipelineInterface[list[tuple[str, AreaProblems]], list[Summary], str]",  # noqa: E501
     storage: dict[str, AreaProblems],
     condition: asyncio.Condition,
     active_tasks: list[int]
 ) -> None:
     while True:
         data = await queue.pop()
-        logger.debug(f"Is last batch: {data.is_last_batch}")
+        msg = f"Is last batch: {data.is_last_batch}"
+        logger.debug(msg)
         if not data.is_last_batch:
             async with condition:
                 active_tasks[0] += 1
@@ -62,12 +63,18 @@ async def worker(  # noqa: PLR0913
             )[:10]
             storage.clear()
             summary_list = await processor_pipe.process(sorted_data_list)
+            summary_of_summary = cast(
+                "str",
+                await processor_pipe.summarize_by_summary(
+                    summary_list
+                )
+            )
             await queue.push(summary_list)
+            await queue.summary_push(summary_of_summary)
 
 
 
 async def main() -> None:
-    logger.debug(f"Device in use: {"cuda" if torch.cuda.is_available() else "cpu"}")
     condition = asyncio.Condition()
     storage: dict[str, AreaProblems] = defaultdict()
     active_tasks = [0]

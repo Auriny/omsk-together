@@ -1,4 +1,5 @@
 import tempfile
+import urllib.parse
 
 import aiohttp
 import gradio as gr
@@ -8,56 +9,32 @@ API_ENDPOINT = "http://localhost:6379/api/upload"
 
 ALLOWED_SUFFIXES = [".xlsx"]
 
-# TESTING PLUG
-# async def upload_excel(file_path: str) -> tuple[str, str | None]:
-#     if file_path is None:
-#         return "⚠️ Пожалуйста, загрузите файл.", None
-
-#     apath = Path(file_path)
-
-#     if not await apath.exists():
-#         return "❌ Файл не найден.", None
-
-#     suffix = (apath.name).rsplit(".", 1)[-1]
-#     suffix = f".{suffix.lower()}"
-#     if suffix not in ALLOWED_SUFFIXES:
-#         return (
-#             "❌ Поддерживаются только файлы формата "
-#             f"{", ".join(ALLOWED_SUFFIXES)}.",
-#             None
-#         )
-#     return (
-#         "✅ Файл успешно обработан!",
-#         "/home/s1lvestr/test.png",
-#     )
-
-async def upload_excel(file_path: str) -> tuple[str, str | None]: # noqa: PLR0911
+async def upload_excel(file_path: str) -> tuple[str, str | None, str]:  # noqa: PLR0911
     if file_path is None:
-        return "⚠️ Пожалуйста, загрузите файл.", None
+        return "Пожалуйста, загрузите файл.", None, ""
 
     apath = Path(file_path)
 
-    # Неблокирующая проверка существования файла
     if not await apath.exists():
-        return "❌ Файл не найден.", None
+        return "Файл не найден.", None, ""
 
     suffix = (await apath.name).rsplit(".", 1)[-1]
     suffix = f".{suffix.lower()}"
     if suffix not in ALLOWED_SUFFIXES:
         return (
-            "❌ Поддерживаются только файлы формата "
-            f"{", ".join(ALLOWED_SUFFIXES)}.",
-            None
+            "Поддерживаются только файлы формата "
+            f"{', '.join(ALLOWED_SUFFIXES)}.",
+            None,
+            ""
         )
 
     try:
-        # Неблокирующее чтение — не морозим event loop на большом файле
         async with await open_file(file_path, "rb") as f:
             file_bytes = await f.read()
 
         filename = str(apath).rsplit("/", 1)[-1]
 
-        timeout = aiohttp.ClientTimeout(total=120)
+        timeout = aiohttp.ClientTimeout(total=2400) # 40 минут таймаут
         async with aiohttp.ClientSession(timeout=timeout) as session:
             form = aiohttp.FormData()
             form.add_field(
@@ -73,20 +50,25 @@ async def upload_excel(file_path: str) -> tuple[str, str | None]: # noqa: PLR091
                         "❌ Сервер вернул ошибку: HTTP "
                         f"{response.status}\n{body[:500]}",
                         None,
+                        ""
                     )
 
                 content_disposition = response.headers.get(
-                    "Content-Disposition",
-                    ""
+                    "Content-Disposition", ""
                 )
                 content_type = response.headers.get(
                     "Content-Type",
                     "application/octet-stream"
                 )
+
+                raw_summary = response.headers.get("X-Summary", "")
+                grand_summary = (
+                    urllib.parse.unquote(raw_summary)
+                    if raw_summary else "Выжимка не найдена."
+                )
                 resp_bytes = await response.read()
 
-        # Определяем имя выходного файла
-        out_filename = "result.xlsx"
+        out_filename = "result.zip"
         if "filename=" in content_disposition:
             out_filename = content_disposition.split(
                 "filename="
@@ -94,11 +76,9 @@ async def upload_excel(file_path: str) -> tuple[str, str | None]: # noqa: PLR091
         elif "csv" in content_type:
             out_filename = "result.csv"
 
-        # Каждый пользователь — своя временная директория
         tmp_dir = await Path(tempfile.mkdtemp())
         out_path = tmp_dir / out_filename
 
-        # Неблокирующая запись ответа
         async with await open_file(out_path, "wb") as f:
             await f.write(resp_bytes)
 
@@ -106,6 +86,7 @@ async def upload_excel(file_path: str) -> tuple[str, str | None]: # noqa: PLR091
             "✅ Файл успешно обработан! Размер ответа: "
             f"{len(resp_bytes):,} байт.",
             str(out_path),
+            grand_summary
         )
 
     except aiohttp.ClientConnectorError:
@@ -113,14 +94,17 @@ async def upload_excel(file_path: str) -> tuple[str, str | None]: # noqa: PLR091
             f"❌ Не удалось подключиться к серверу: {API_ENDPOINT}\n"
             "Убедитесь, что сервер запущен.",
             None,
+            ""
         )
     except TimeoutError:
-        return "❌ Превышено время ожидания ответа от сервера (120 сек).", None
+        return (
+            "❌ Превышено время ожидания ответа от сервера (30 мин).",
+            None, ""
+        )
     except Exception as e: # noqa: BLE001
-        return f"❌ Непредвиденная ошибка: {type(e).__name__}: {e}", None
+        return f"❌ Непредвиденная ошибка: {type(e).__name__}: {e}", None, ""
 
 
-# ── UI ──────────────────────────────────────────────────────────────────────
 
 with gr.Blocks(
     title="Excel Upload Service",
@@ -180,6 +164,12 @@ with gr.Blocks(
                 lines=3,
             )
 
+    summary_output = gr.Textbox(
+        label="Главная аналитическая выжимка",
+        interactive=False,
+        lines=5,
+    )
+
     file_output = gr.File(
         label="Скачать результат",
         interactive=False,
@@ -189,7 +179,7 @@ with gr.Blocks(
 
     gr.HTML(
         '<div style="display:flex; justify-content:center;">'
-        '<a id="download-btn">Скачать результат</a></div>'
+        '<a id="download-btn">Скачать архив с результатами</a></div>'
     )
 
     file_output.change(
@@ -204,7 +194,7 @@ with gr.Blocks(
                 if (!btn) return;
                 if (anchor && anchor.href) {
                     btn.href = anchor.href;
-                    btn.download = anchor.getAttribute('download') || 'result';
+                    btn.download = anchor.getAttribute('download') || 'analytics_pack.zip';
                     btn.classList.add('visible');
                     clearInterval(poll);
                 } else {
@@ -215,24 +205,25 @@ with gr.Blocks(
         """, # noqa: E501
     )
 
-
     submit_btn.click(
         fn=lambda: (
-            gr.update(value="⏳ Загрузка и обработка файла..."),
-            gr.update(value=None)
+            gr.update(value=(
+                "⏳ Загрузка и обработка файла "
+                "(может занять до 15 минут)..."
+            )),
+            gr.update(value=None),
+            gr.update(value="")
         ),
         inputs=None,
-        outputs=[status_output, file_output],
+        outputs=[status_output, file_output, summary_output],
         queue=False,
     ).then(
         fn=upload_excel,
         inputs=[file_input],
-        outputs=[status_output, file_output],
+        outputs=[status_output, file_output, summary_output],
         queue=True,
     )
 
 
 if __name__ == "__main__":
-    demo.launch(max_file_size="1gb")
-    # TESTING OPTION
-    # demo.launch(allowed_paths=["/home/s1lvestr/"], max_file_size="1gb")
+    demo.launch(max_file_size="10gb")
