@@ -93,7 +93,7 @@ public class ExcelService {
             CellStyle top3HeaderStyle = createHeaderStyle(top3Workbook, IndexedColors.ROSE.getIndex());
             CellStyle top10HeaderStyle = createHeaderStyle(top10Workbook, IndexedColors.PALE_BLUE.getIndex());
 
-            String[] columns = {"Ранг", "Муниципалитет", "Кол-во проблем", "Ключевые темы", "Отчёт AI"};
+            String[] columns = {"Ранг", "Муниципалитет", "Кол-во проблем", "Темы (частота)", "Темы (острота)", "Отчёт AI"};
             createHeaderRow(top3Sheet, columns, top3HeaderStyle);
             createHeaderRow(top10Sheet, columns, top10HeaderStyle);
 
