@@ -32,7 +32,6 @@ async def upload_excel(file_path: str) -> tuple[str, str | None, str]:  # noqa: 
         async with await open_file(file_path, "rb") as f:
             file_bytes = await f.read()
 
-        # filename = str(await apath).rsplit("/", 1)[-1]
         filename = apath.name
 
         timeout = aiohttp.ClientTimeout(total=2400) # 40 минут таймаут
@@ -228,7 +227,7 @@ with gr.Blocks(
 
 if __name__ == "__main__":
     demo.launch(
-        server_name="0.0.0.0",
+        server_name="0.0.0.0",  # noqa: S104
         server_port=80,
         max_file_size="10gb"
     )

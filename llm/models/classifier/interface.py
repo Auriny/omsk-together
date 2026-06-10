@@ -7,5 +7,8 @@ V = TypeVar("V")
 class ClassifierModelInterface(Protocol[T, V]): # type: ignore[misc]
     """Interface for a classifier model."""
 
+    async def run_inference_loop(self) -> None:
+        """Process classify future-objects."""
+
     async def filter(self, itema: T) -> V:
         """Filter an item and return the result."""

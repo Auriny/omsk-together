@@ -3,44 +3,42 @@ from asyncio import Future, Queue, get_event_loop, to_thread
 from typing import ClassVar
 
 import torch
-from transformers import ZeroShotClassificationPipeline, pipeline
+from transformers import TextClassificationPipeline, pipeline
 
+from enums import LabelsEnum
 from settings import Settings
 
 logger = logging.getLogger(__name__)
 
-type PipelineOut = list[dict[str, str | list[str] | list[float]]]
+type PipelineOut = list[dict[str, str | float]]
 
-class MDeBERTa:
-    """mDeBERTa classifier-interface implementation."""
 
-    _model: ClassVar[ZeroShotClassificationPipeline] = None
-    _labels = ("проблема", "не проблема")
-    _instance: ClassVar["MDeBERTa"] = None
-    _queue: Queue[tuple[
-        list[str],
-        Future[PipelineOut]
-    ]]
+class RuBERT:
+    """RuBERT classifier-interface implementation."""
+
+    _model: ClassVar[TextClassificationPipeline] = None
+    _labels = LabelsEnum
+    _instance: ClassVar["RuBERT"] = None
+    _queue: Queue[tuple[list[str], Future[PipelineOut]]]
 
     def __init__(self) -> None:
         self._queue = Queue()
         self._init_model()
-    
+
     @classmethod
     def _init_model(cls) -> None:
         if cls._model is None:
-            logger.info("Initializing mDeBERTa model with optimizations")
+            logger.info("Initializing RuBERT model with optimizations")
             cls._model = pipeline(
-                "zero-shot-classification",
-                model=Settings.get().MDEBERTA_PATH,
+                "text-classification",
+                model=Settings.get().RUBERT_PATH,
+                tokenizer=Settings.get().RUBERT_PATH,
                 device=0,
-                # dtype=torch.float16
             )
-            logger.info("Model initialized with half precision")
 
     @classmethod
-    def get_instance(cls) -> "MDeBERTa":
-        logger.debug("Getting mDeBERTa instance")
+    def get_instance(cls) -> "RuBERT":
+        logger.debug("Getting RuBERT instance")
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
@@ -64,17 +62,12 @@ class MDeBERTa:
                 logger.info("Starting mDeBERTa model by asyncio.to_thread()")
                 with torch.no_grad():
                     result: PipelineOut = await to_thread(
-                        lambda: self._model(
-                            batch, # noqa: B023
-                            self._labels,
-                            multi_label=False,
-                            batch_size=16,
-                        )
+                        lambda: self._model(batch)  # noqa: B023
                     )
                 idx = 0
                 for size, future in futures:
                     logger.debug("Set result to future")
-                    future.set_result(result[idx:idx+size])
+                    future.set_result(result[idx : idx + size])
                     idx += size
             except Exception as e:
                 msg = f"!!! ERROR:\n{e}"
@@ -88,4 +81,4 @@ class MDeBERTa:
         await self._queue.put((items, future))
         logger.debug("Await future")
         output = await future
-        return [i["labels"][0] for i in output]
+        return [i["label"] for i in output]
