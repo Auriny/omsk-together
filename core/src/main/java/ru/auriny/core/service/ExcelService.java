@@ -67,7 +67,7 @@ public class ExcelService {
 
             if (!batch.isEmpty()) aiQueueService.pushTask(RedisKeys.QUEUE_TASKS, new AnalyzeTaskBatch(false, batch));
 
-            log.info("Чтение файла завершено. Отправляем isLastBatch = true");
+            log.info("Чтение файла завершено. Отправляем последний батч");
             aiQueueService.pushTask(RedisKeys.QUEUE_TASKS, new AnalyzeTaskBatch(true, List.of()));
         }
 
@@ -76,7 +76,7 @@ public class ExcelService {
         String grandSummary = aiQueueService.waitForResult(RedisKeys.QUEUE_SUMMARY, String.class, 8000);
 
         if (results == null || results.length == 0 || grandSummary == null) {
-            throw new RuntimeException("Не удалось получить результат от AI-модуля (таймаут или ошибка)");
+            throw new RuntimeException("Не удалось получить результат от llm-service!!! Проверьте логи");
         }
 
         byte[] top3ExcelBytes;
