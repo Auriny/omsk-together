@@ -72,8 +72,8 @@ public class ExcelService {
         }
 
         log.info("Ждем генерации саммари...");
-        FinalReportRow[] results = aiQueueService.waitForResult(RedisKeys.QUEUE_RESULTS, FinalReportRow[].class, 1200);
-        String grandSummary = aiQueueService.waitForResult(RedisKeys.QUEUE_SUMMARY, String.class, 1200);
+        FinalReportRow[] results = aiQueueService.waitForResult(RedisKeys.QUEUE_RESULTS, FinalReportRow[].class, 8000);
+        String grandSummary = aiQueueService.waitForResult(RedisKeys.QUEUE_SUMMARY, String.class, 8000);
 
         if (results == null || results.length == 0 || grandSummary == null) {
             throw new RuntimeException("Не удалось получить результат от AI-модуля (таймаут или ошибка)");
@@ -198,6 +198,7 @@ public class ExcelService {
         dataRow.createCell(1).setCellValue(reportRow.district());
         dataRow.createCell(2).setCellValue(reportRow.problemCount());
         dataRow.createCell(3).setCellValue(reportRow.topIssues());
+        dataRow.createCell(3).setCellValue(reportRow.difficultIssues());
         dataRow.createCell(4).setCellValue(reportRow.summary());
     }
 
