@@ -22,7 +22,7 @@ test.py
 
 .huggingface/
 .cache/
-mDeBERTa/
+RuBERT/
 Qwen/
 
 HELP.md
