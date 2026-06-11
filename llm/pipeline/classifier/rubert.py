@@ -20,7 +20,7 @@ class RuBERTClassifier:
         self._model = RuBERT.get_instance()
 
     async def classify(self, items: "Batch") -> list[dict[str, str | int]]:
-        logger.info("Start to classify by mDeBERTa pipeline")
+        logger.info("Start to classify by RuBERT pipeline")
         result = await self._model.filter([i.text for i in items.items])
         return [
             {
@@ -30,5 +30,5 @@ class RuBERTClassifier:
                 "problem": item.text
             }
             for item, label in zip(items.items, result, strict=False)
-            if label != LabelsEnum.NOT_PROBLEM
+            if label not in [LabelsEnum.NOT_PROBLEM, LabelsEnum.SMALL]
         ]

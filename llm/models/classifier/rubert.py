@@ -75,10 +75,10 @@ class RuBERT:
                 for _, future in futures:
                     future.set_exception(e)
 
-    async def filter(self, items: list[str]) -> list[str]:
+    async def filter(self, items: list[str]) -> list[int]:
         logger.info("Start filtering by mDeBERTa")
         future: Future[PipelineOut] = get_event_loop().create_future()
         await self._queue.put((items, future))
         logger.debug("Await future")
         output = await future
-        return [i["label"] for i in output]
+        return [int(i["label"].replace("LABEL_", "")) for i in output]

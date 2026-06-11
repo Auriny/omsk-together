@@ -1,24 +1,22 @@
 from dataclasses import dataclass, field
 
-from utils import convert_diff_str_to_int
-
 
 @dataclass
 class Topic:
     """Topic class."""
 
     count: int = 0
-    problems: dict[str, list[str]] = field(default_factory=dict)
+    problems: dict[int, list[str]] = field(default_factory=dict)
 
     @property
     def difficult(self) -> int:
-        max_problems_by_diff = max(*[
-            (difficult, len(items))
-            for difficult, items in self.problems
-        ], key=lambda x: x[1])
-        return convert_diff_str_to_int(
-            max_problems_by_diff[0]
-        )
+        return max(
+            *[
+                (difficult, len(items))
+                for difficult, items in self.problems.items()
+            ],
+            key=lambda x: x[1],
+        )[0]
 
 @dataclass
 class AreaProblems:

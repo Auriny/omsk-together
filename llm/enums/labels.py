@@ -1,12 +1,12 @@
-from enum import StrEnum
+from enum import IntEnum
 
 
-class LabelsEnum(StrEnum):
+class LabelsEnum(IntEnum):
     """Labels enum."""
 
-    EMERGENCY = "чрезвычайная ситуация"
-    CRITICAL = "критическая проблема"
-    SERIOUS = "серьёзная проблема"
-    MODERATE = "умеренная проблема"
-    SMALL = "маленькая проблема"
-    NOT_PROBLEM = "не проблема"
+    EMERGENCY = 5
+    CRITICAL = 4
+    SERIOUS = 3
+    MODERATE = 2
+    SMALL = 1
+    NOT_PROBLEM = 0
