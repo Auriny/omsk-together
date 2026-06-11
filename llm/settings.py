@@ -6,7 +6,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Settings for the LLM application."""
 
-    MDEBERTA_PATH: str | None
     RUBERT_PATH: str
     QWEN_PATH: str
     REDIS_HOST: str
