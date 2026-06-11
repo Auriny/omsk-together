@@ -67,16 +67,16 @@ public class ExcelService {
 
             if (!batch.isEmpty()) aiQueueService.pushTask(RedisKeys.QUEUE_TASKS, new AnalyzeTaskBatch(false, batch));
 
-            log.info("Чтение файла завершено. Отправляем isLastBatch = true");
+            log.info("Чтение файла завершено. Отправляем последний батч");
             aiQueueService.pushTask(RedisKeys.QUEUE_TASKS, new AnalyzeTaskBatch(true, List.of()));
         }
 
         log.info("Ждем генерации саммари...");
-        FinalReportRow[] results = aiQueueService.waitForResult(RedisKeys.QUEUE_RESULTS, FinalReportRow[].class, 1200);
-        String grandSummary = aiQueueService.waitForResult(RedisKeys.QUEUE_SUMMARY, String.class, 1200);
+        FinalReportRow[] results = aiQueueService.waitForResult(RedisKeys.QUEUE_RESULTS, FinalReportRow[].class, 8000);
+        String grandSummary = aiQueueService.waitForResult(RedisKeys.QUEUE_SUMMARY, String.class, 8000);
 
         if (results == null || results.length == 0 || grandSummary == null) {
-            throw new RuntimeException("Не удалось получить результат от AI-модуля (таймаут или ошибка)");
+            throw new RuntimeException("Не удалось получить результат от llm-service!!! Проверьте логи");
         }
 
         byte[] top3ExcelBytes;
@@ -93,7 +93,7 @@ public class ExcelService {
             CellStyle top3HeaderStyle = createHeaderStyle(top3Workbook, IndexedColors.ROSE.getIndex());
             CellStyle top10HeaderStyle = createHeaderStyle(top10Workbook, IndexedColors.PALE_BLUE.getIndex());
 
-            String[] columns = {"Ранг", "Муниципалитет", "Кол-во проблем", "Ключевые темы", "Отчёт AI"};
+            String[] columns = {"Ранг", "Муниципалитет", "Кол-во проблем", "Темы (частота)", "Темы (острота)", "Отчёт AI"};
             createHeaderRow(top3Sheet, columns, top3HeaderStyle);
             createHeaderRow(top10Sheet, columns, top10HeaderStyle);
 
@@ -198,6 +198,7 @@ public class ExcelService {
         dataRow.createCell(1).setCellValue(reportRow.district());
         dataRow.createCell(2).setCellValue(reportRow.problemCount());
         dataRow.createCell(3).setCellValue(reportRow.topIssues());
+        dataRow.createCell(3).setCellValue(reportRow.difficultIssues());
         dataRow.createCell(4).setCellValue(reportRow.summary());
     }
 
