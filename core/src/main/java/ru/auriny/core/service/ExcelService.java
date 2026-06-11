@@ -198,8 +198,8 @@ public class ExcelService {
         dataRow.createCell(1).setCellValue(reportRow.district());
         dataRow.createCell(2).setCellValue(reportRow.problemCount());
         dataRow.createCell(3).setCellValue(reportRow.topIssues());
-        dataRow.createCell(3).setCellValue(reportRow.difficultIssues());
-        dataRow.createCell(4).setCellValue(reportRow.summary());
+        dataRow.createCell(4).setCellValue(reportRow.difficultIssues());
+        dataRow.createCell(5).setCellValue(reportRow.summary());
     }
 
     private void autoSizeColumns(SXSSFSheet sheet, int columnCount) {
