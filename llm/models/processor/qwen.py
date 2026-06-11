@@ -30,7 +30,9 @@ type Backend = TokenizersBackend | SentencePieceBackend
 
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True,
-    bnb_4bit_compute_dtype=torch.float16
+    bnb_4bit_compute_dtype=torch.float16,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_use_double_quant=True
 )
 
 class Qwen:
@@ -42,7 +44,7 @@ class Qwen:
             dtype=torch.bfloat16,
             attn_implementation="sdpa",
             device_map="auto",
-            quantization_config=bnb_config
+            quantization_config=bnb_config,
         )
     )
     _tokenizer: Backend = AutoTokenizer.from_pretrained(
@@ -58,39 +60,49 @@ class Qwen:
             cls._instance = cls()
         return cls._instance
 
+    @torch.inference_mode()
     async def _generate(self, messages: list[dict[str, str]]) -> str:
         logger.info("Starting response generation by Qwen")
         msg = f"Prompt to summary: {messages}"
         logger.debug(msg)
         logger.debug("Applying chat template")
-        text = self._tokenizer.apply_chat_template(
+        # text = self._tokenizer.apply_chat_template(
+        model_inputs = self._tokenizer.apply_chat_template(
             messages,
-            tokenize=False,
+            tokenize=True,
             add_generation_prompt=True,
+            return_dict=True,
+            return_tensors="pt",
             enable_thinking=False,
-        )
-        logger.debug("Tokenize inputs")
-        model_inputs = self._tokenizer([text], return_tensors="pt").to(
-            self._model.device
-        )
+        ).to(self._model.device)
+        # logger.debug("Tokenize inputs")
+        # model_inputs = self._tokenizer(
+        #     [text],
+        #     truncation=True,
+        #     max_length=2048,
+        #     # return_tensors="pt"
+        # )
+        # .to(self._model.device)
         logger.debug("Generate summary")
         generated_ids = self._model.generate(
             **model_inputs,
-            max_new_tokens=256,
+            max_new_tokens=300,
             do_sample=False,
             # temperature=0.3,
             repetition_penalty=1.15,
         )
-        output_ids = generated_ids[0][
-            len(model_inputs.input_ids[0]) :
-        ].tolist()
-        try:
-            index = len(output_ids) - output_ids[::-1].index(151668)
-        except ValueError:
-            index = 0
+        input_length = model_inputs.input_ids.shape[1]
+        output_ids = generated_ids[0][input_length:].tolist()
+        # output_ids = generated_ids[0][
+        #     len(model_inputs.input_ids[0]) :
+        # ].tolist()
+        # try:
+        #     index = len(output_ids) - output_ids[::-1].index(151668)
+        # except ValueError:
+        #     index = 0
         logger.debug("Decoding Qwen response")
         response = self._tokenizer.decode(
-            output_ids[index:], skip_special_tokens=True
+            output_ids, skip_special_tokens=True
         ).strip("\n")
         msg = f"Response {response}"
         logger.debug(msg)
@@ -157,7 +169,7 @@ class Qwen:
                     "1. Пиши максимально конкретно, опираясь на факты "
                     'из текста. Запрещены общие фразы вроде "граждане '
                     'жалуются на различные проблемы в сфере ЖКХ".\n'
-                    "2. Объем ответа: строго от 4 до 8 предложений.\n"
+                    "2. Объем ответа: строго от 4 до 6 предложений.\n"
                     "3. Стиль: официально-деловой, сухой, без эмоций "
                     "и деепричастных оборотов.\n"
                     "4. Запрещено использовать приветствия, вводные "

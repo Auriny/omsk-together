@@ -32,7 +32,9 @@ class RuBERT:
                 model=Settings.get().RUBERT_PATH,
                 tokenizer=Settings.get().RUBERT_PATH,
                 device=0,
-                dtype=torch.float16
+                dtype=torch.float16,
+                max_length=512,
+                truncation=True
             )
 
     @classmethod
@@ -51,7 +53,7 @@ class RuBERT:
             logger.debug("Item and future were gotten")
             batch.extend(items)
             futures.append((len(items), future))
-            while not self._queue.empty():
+            while not self._queue.empty() and len(batch) < 100:
                 items, future = self._queue.get_nowait()
                 batch.extend(items)
                 futures.append((len(items), future))
@@ -61,7 +63,12 @@ class RuBERT:
                 logger.info("Starting RuBERT model by asyncio.to_thread()")
                 with torch.no_grad():
                     result: PipelineOut = await to_thread(
-                        lambda: self._model(batch, batch_size=16)  # noqa: B023
+                        lambda: self._model(
+                            batch,
+                            batch_size=16,
+                            max_length=512,
+                            truncation=True
+                        )  # noqa: B023
                     )
                 idx = 0
                 for size, future in futures:
