@@ -39,7 +39,8 @@ class Qwen:
     _model: ClassVar["PreTrainedModel"] = (
         AutoModelForCausalLM.from_pretrained(
             Settings.get().QWEN_PATH,
-            torch_dtype="auto",
+            dtype=torch.bfloat16,
+            attn_implementation="sdpa",
             device_map="auto",
             quantization_config=bnb_config
         )
@@ -76,8 +77,8 @@ class Qwen:
         generated_ids = self._model.generate(
             **model_inputs,
             max_new_tokens=256,
-            do_sample=True,
-            temperature=0.3,
+            do_sample=False,
+            # temperature=0.3,
             repetition_penalty=1.15,
         )
         output_ids = generated_ids[0][

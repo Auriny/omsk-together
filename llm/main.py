@@ -89,6 +89,7 @@ async def worker(  # noqa: PLR0913
             )
             await queue.push(summary_list)
             await queue.summary_push(summary_of_summary)
+            tasks_complited[0] = 0
 
 
 

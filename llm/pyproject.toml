@@ -14,8 +14,8 @@ dependencies = [
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.1",
     "redis[hiredis]>=8.0.0",
-    "torch>=2.6.0",
-    "torchvision>=0.17.0",
+    "torch>=2.11.0",
+    "torchvision>=0.26.0",
     "transformers>=5.10.2",
 ]
 
@@ -58,11 +58,11 @@ plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 
 [tool.uv.sources]
-torchvision = [
+torch = [
     { index = "pytorch_cu128" }
 ]
-torch = [
-    { index = "pytorch_cu128"}
+torchvision = [
+    { index = "pytorch_cu128" }
 ]
 
 [[tool.uv.index]]
