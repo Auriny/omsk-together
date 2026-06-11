@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from pipeline.processor import ProcessorPipelineInterface
     from queue_client.interface import QueueInterface
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 logger = logging.getLogger()
 

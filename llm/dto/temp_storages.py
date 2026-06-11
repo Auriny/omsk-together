@@ -43,7 +43,7 @@ class AreaProblems:
         for topic in self.problems:
             if len(result) >= 25:  # noqa: PLR2004
                 break
-            result.extend(self.problems[topic].get_problems())
+            result.extend(self.problems[topic].get_problems()[:6])
         return result
 
     @property
