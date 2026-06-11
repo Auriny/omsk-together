@@ -5,7 +5,6 @@ from typing import ClassVar
 import torch
 from transformers import TextClassificationPipeline, pipeline
 
-from enums import LabelsEnum
 from settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -17,7 +16,6 @@ class RuBERT:
     """RuBERT classifier-interface implementation."""
 
     _model: ClassVar[TextClassificationPipeline] = None
-    _labels = LabelsEnum
     _instance: ClassVar["RuBERT"] = None
     _queue: Queue[tuple[list[str], Future[PipelineOut]]]
 
@@ -60,7 +58,7 @@ class RuBERT:
             msg = f"Count of tasks: {len(futures)}"
             logger.info(msg)
             try:
-                logger.info("Starting mDeBERTa model by asyncio.to_thread()")
+                logger.info("Starting RuBERT model by asyncio.to_thread()")
                 with torch.no_grad():
                     result: PipelineOut = await to_thread(
                         lambda: self._model(batch, batch_size=16)  # noqa: B023
@@ -77,7 +75,7 @@ class RuBERT:
                     future.set_exception(e)
 
     async def filter(self, items: list[str]) -> list[int]:
-        logger.info("Start filtering by mDeBERTa")
+        logger.info("Start filtering by RuBERT")
         future: Future[PipelineOut] = get_event_loop().create_future()
         await self._queue.put((items, future))
         logger.debug("Await future")

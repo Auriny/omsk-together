@@ -41,8 +41,10 @@ class AreaProblems:
     def get_problems(self) -> list[str]:
         result = []
         for topic in self.problems:
+            if len(result) >= 25:  # noqa: PLR2004
+                break
             result.extend(self.problems[topic].get_problems())
-        return result[:25]
+        return result
 
     @property
     def topics_by_count(self) -> list[str]:
