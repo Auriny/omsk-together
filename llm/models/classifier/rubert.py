@@ -34,6 +34,7 @@ class RuBERT:
                 model=Settings.get().RUBERT_PATH,
                 tokenizer=Settings.get().RUBERT_PATH,
                 device=0,
+                dtype=torch.float16
             )
 
     @classmethod
@@ -62,7 +63,7 @@ class RuBERT:
                 logger.info("Starting mDeBERTa model by asyncio.to_thread()")
                 with torch.no_grad():
                     result: PipelineOut = await to_thread(
-                        lambda: self._model(batch)  # noqa: B023
+                        lambda: self._model(batch, batch_size=16)  # noqa: B023
                     )
                 idx = 0
                 for size, future in futures:

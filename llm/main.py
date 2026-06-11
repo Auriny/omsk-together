@@ -53,6 +53,15 @@ async def worker(  # noqa: PLR0913
                     ):
                         storage[item["district"]] \
                             .problems[item["topic"]] = Topic()
+                    if (
+                        item["difficult"]
+                        not in storage[item["district"]] \
+                            .problems[item["topic"]] \
+                                .problems
+                    ):
+                        storage[item["district"]] \
+                            .problems[item["topic"]] \
+                                .problems[item["difficult"]] = []
                     storage[item["district"]] \
                         .problems[item["topic"]].count += 1
                     storage[item["district"]] \
