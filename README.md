@@ -119,15 +119,6 @@ uv run hf download S1lv570/RuBERT-Digital-Breakthrough --local-dir resources/RuB
 uv run hf download Qwen/Qwen3-8B --local-dir resources/Qwen
 ```
 
-Скопируйте файл .env.example как .env и задайте значения для REDIS_HOST, если Redis стоит не локально на вашей машине
-
-```env
-RUBERT_PATH=resources/RuBERT
-QWEN_PATH=resourses/Qwen
-REDIS_HOST=localhost # заменить на нужный айпи/домен (без указания протокола)
-REDIS_PORT=6379
-```
-
 Дождитесь полной загрузки библиотек и весов моделей.
 
 #### Настойка веб-интерфейс (Python) (опционально)
