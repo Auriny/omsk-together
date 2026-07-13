@@ -34,7 +34,11 @@ public class ExcelService {
     private static final int BATCH_SIZE = 50;
 
     public ReportResult processAndGenerateReport(MultipartFile file) throws IOException {
-        log.info("Началась обработка файла: {}", file.getOriginalFilename());
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || !fileName.endsWith(".xlsx")) {
+            throw new IllegalArgumentException("Только файлы .xlsx допускаются");
+        }
+        log.info("Началась обработка файла: {}", fileName);
 
         try (InputStream is = file.getInputStream();
              Workbook readWorkbook = StreamingReader.builder()
