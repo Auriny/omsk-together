@@ -35,9 +35,9 @@ public class ExcelService {
 
     public ReportResult processAndGenerateReport(MultipartFile file) throws IOException {
         String fileName = file.getOriginalFilename();
-        if (fileName == null || !fileName.endsWith(".xlsx")) {
+        if (fileName == null || !fileName.toLowerCase().endsWith(".xlsx")) {
             throw new IllegalArgumentException("Только файлы .xlsx допускаются");
-        }
+        };
         log.info("Началась обработка файла: {}", fileName);
 
         try (InputStream is = file.getInputStream();
