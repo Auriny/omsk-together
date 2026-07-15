@@ -1,0 +1,55 @@
+name: CI - Java & Python tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  java-tests:
+    name: Java Maven tests (core)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: core
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Maven tests
+        run: mvn -B clean test
+
+  python-tests:
+    name: Python pytest (llm)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: llm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv and sync
+        run: |
+          pip install uv
+          uv sync
+
+      - name: Run pytest with uv
+        run: uv run pytest tests -v
