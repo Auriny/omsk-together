@@ -4,12 +4,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from dto import AreaProblems, Summary
 from collections import defaultdict
 
-with patch("models.processor.qwen.AutoModelForCausalLM") as mock_model_cls, \
-     patch("models.processor.qwen.AutoTokenizer") as mock_tok_cls:
-
+import models.processor.qwen as qwen_module
+with patch.object(qwen_module, "AutoModelForCausalLM") as mock_model_cls, \
+     patch.object(qwen_module, "AutoTokenizer") as mock_tok_cls:
     mock_model_cls.from_pretrained.return_value = MagicMock()
     mock_tok_cls.from_pretrained.return_value = MagicMock()
-
 from pipeline.processor.qwen import QwenProcessor
 
 
