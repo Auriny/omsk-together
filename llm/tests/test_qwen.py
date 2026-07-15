@@ -1,15 +1,29 @@
-import pytest
+import pytest, sys
 
+from types import ModuleType
 from unittest.mock import AsyncMock, MagicMock, patch
-from dto import AreaProblems, Summary
 from collections import defaultdict
 
-import models.processor.qwen as qwen_module
-with patch.object(qwen_module, "AutoModelForCausalLM") as mock_model_cls, \
-     patch.object(qwen_module, "AutoTokenizer") as mock_tok_cls:
-    mock_model_cls.from_pretrained.return_value = MagicMock()
-    mock_tok_cls.from_pretrained.return_value = MagicMock()
+class DummyQwen:
+    @classmethod
+    def get_instance(cls):
+        m = MagicMock()
+        m.summarize = AsyncMock(return_value="dummy summary")
+        m.summarize_summary = AsyncMock(return_value="dummy global summary")
+        return m
+
+fake_qwen_module = ModuleType("models.processor.qwen")
+fake_qwen_module.Qwen = DummyQwen
+
+fake_processor_module = ModuleType("models.processor")
+fake_processor_module.qwen = fake_qwen_module
+fake_processor_module.Qwen = DummyQwen  # если где-то пишешь `from models.processor import Qwen`
+
+sys.modules["models.processor.qwen"] = fake_qwen_module
+sys.modules["models.processor"] = fake_processor_module
+
 from pipeline.processor.qwen import QwenProcessor
+from dto import AreaProblems, Summary
 
 
 class FakeTopic:
