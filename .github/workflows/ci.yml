@@ -36,6 +36,12 @@ jobs:
     defaults:
       run:
         working-directory: llm
+    
+    env:
+      RUBERT_PATH: "resources/RuBERT"
+      QWEN_PATH: "resources/QWEN"
+      REDIS_HOST: "localhost"
+      REDIS_PORT: "6379"
 
     steps:
       - name: Checkout
